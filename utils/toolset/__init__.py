@@ -12,4 +12,4 @@ __copyright__ = 'Copyright 2018, Benjamin Pillot'
 __email__ = 'benjaminpillot@riseup.net'
 
 
-from gistools.utils.toolset.list import *
+from utils.toolset.list import *

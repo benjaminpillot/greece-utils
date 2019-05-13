@@ -5,7 +5,7 @@
 More detailed description.
 """
 
-from gistools.utils.check.value import check_file
+from utils.check.value import check_file
 import numpy as np
 import os
 

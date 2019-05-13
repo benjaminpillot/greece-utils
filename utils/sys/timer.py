@@ -7,7 +7,7 @@ More detailed description.
 
 # __all__ = []
 # __version__ = '0.1'
-import sys
+from utils import sys
 import time
 from functools import wraps
 

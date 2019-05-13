@@ -12,7 +12,7 @@ import datetime
 import io
 import logging
 import os
-import sys
+from utils import sys
 import tempfile
 from contextlib import contextmanager
 from tempfile import gettempdir

@@ -4,20 +4,20 @@
 
 More detailed description.
 """
+from setuptools import setup, find_packages
 
-__version__ = '0.1'
+import utils
+
 __author__ = 'Benjamin Pillot'
 __copyright__ = 'Copyright 2019, Benjamin Pillot'
 __email__ = 'benjaminpillot@riseup.net'
 
 
-from setuptools import setup, find_packages
-
 with open("README.md", 'r') as fh:
     long_description = fh.read()
 
 setup(name='greece-utils',
-      version='0.1.0',
+      version=utils.__version__,
       description='GREECE utils',
       long_description=long_description,
       long_description_content_type="text/markdown",

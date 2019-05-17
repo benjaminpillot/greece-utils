@@ -15,7 +15,7 @@ __email__ = 'benjaminpillot@riseup.net'
 
 
 def lazyproperty(func):
-    name = '_' + func.__name__
+    name = '_lazy_' + func.__name__
 
     @property
     def lazy(self):

@@ -7,11 +7,17 @@ More detailed description.
 
 # __all__ = []
 # __version__ = '0.1'
+import base64
 import ctypes
 import datetime
 import io
 import logging
 import os
+
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from utils import sys
 import tempfile
 from contextlib import contextmanager
@@ -25,6 +31,58 @@ __email__ = 'benjaminpillot@riseup.net'
 libc = ctypes.CDLL(None)
 c_stderr = ctypes.c_void_p.in_dll(libc, 'stderr')
 c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
+
+
+def decrypt(path_to_credentials, path_to_keyring, fernet_str, salt_length=16):
+    """ Decrypt encrypted credentials
+
+    :param path_to_credentials:
+    :param path_to_keyring:
+    :param fernet_str:
+    :param salt_length:
+    :return:
+    """
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=open(path_to_keyring, 'rb').read(salt_length),
+        iterations=100000,
+        backend=default_backend()
+    )
+
+    fernet = Fernet(base64.urlsafe_b64encode(kdf.derive(bytes(fernet_str, 'utf-8'))))
+
+    with open(path_to_credentials, 'rb') as file:
+        return fernet.decrypt(file.read(100)).decode("ascii"), fernet.decrypt(file.read()).decode("ascii")
+
+
+def encrypt(path_to_credentials, path_to_keyring, user, passwd, fernet_str, salt_length=16):
+    """ Encrypt credentials
+
+    :param path_to_credentials:
+    :param path_to_keyring:
+    :param user:
+    :param passwd:
+    :param fernet_str:
+    :param salt_length:
+    :return:
+    """
+    salt = os.urandom(salt_length)
+    with open(path_to_keyring, 'wb') as file:
+        file.write(salt)
+
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+        backend=default_backend()
+    )
+    fernet = Fernet(base64.urlsafe_b64encode(kdf.derive(bytes(fernet_str, 'utf-8'))))
+
+    with open(path_to_credentials, 'wb') as file:
+        file.write(fernet.encrypt(bytes(user, 'utf-8')))
+        file.write(fernet.encrypt(bytes(passwd, 'utf-8')))
 
 
 class LogFile:

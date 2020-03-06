@@ -11,9 +11,8 @@ __email__ = 'benjaminpillot@riseup.net'
 
 import csv
 
-from sqlalchemy import MetaData, Table
+from sqlalchemy import MetaData
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.orm import sessionmaker
 
 
 class SqlCsv:
@@ -33,13 +32,16 @@ class SqlCsv:
         self.meta = MetaData()
         self.meta.reflect(bind=self.engine)
 
-    def to_csv(self, table_name, csv_file, map_foreign_key_tables=False, delimiter=','):
+    def to_csv(self, table_name, csv_file, map_foreign_key_tables=False, delimiter=',', filter_value=None):
         """ Convert sql database table to csv
 
         :param table_name: table name in sqlalchemy ORM
         :param csv_file: path to csv file
         :param map_foreign_key_tables: if True, try to map all corresponding tables (from foreign keys) into csv
         :param delimiter: delimiter char in csv file (default: comma)
+        :param filter_value: (tuple or list of values) only keep rows who contain the given value or a list of 
+        values (str, int, etc.). Should be used as a "soft filter" as the csv file can be filtered later (e.g. using
+        pandas)
         :return:
         """
         def get_columns(name, count=1):
@@ -96,4 +98,8 @@ class SqlCsv:
             csvwriter = csv.writer(csvfile, delimiter=delimiter)
             csvwriter.writerow(column_names)
             for row in rows:
-                csvwriter.writerow(row)
+                if filter_value:
+                    if any(val in row for val in filter_value):
+                        csvwriter.writerow(row)
+                else:
+                    csvwriter.writerow(row)

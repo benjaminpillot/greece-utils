@@ -2,7 +2,8 @@
 A set of common but yet useful generic tools
 
 ### Examples:
-##### Convert SQL database table to CSV file with mapping of foreign key tables
+##### Convert SQL database table to CSV file
+Implement recursive mapping of all foreign key tables (join of all related tables)
 ```
 >>> from utils.toolset import SqlCsv
 >>> my_object = SqlCsv(engine, session)

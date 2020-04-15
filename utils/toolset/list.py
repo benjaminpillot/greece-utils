@@ -41,6 +41,18 @@ def split_list_by_index(alist, indices, include=False):
         return [alist[i:j] for i, j in zip([0] + indices, indices + [None])]
 
 
+def str_to_list(a_string):
+    """ Convert string to list
+
+    :param a_string:
+    :return:
+    """
+    try:
+        return a_string.splitlines()
+    except AttributeError:
+        return a_string
+
+
 def chunks(alist, n):
     """ Return n chunks from list
 

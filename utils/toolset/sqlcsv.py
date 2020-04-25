@@ -11,9 +11,8 @@ __email__ = 'benjaminpillot@riseup.net'
 
 import csv
 
-from sqlalchemy import MetaData, Table
+from sqlalchemy import MetaData
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.orm import sessionmaker
 
 
 class SqlCsv:
@@ -33,24 +32,27 @@ class SqlCsv:
         self.meta = MetaData()
         self.meta.reflect(bind=self.engine)
 
-    def to_csv(self, table_name, csv_file, get_foreign_key_tables=False, delimiter=','):
+    def to_csv(self, table_name, csv_file, map_foreign_key_tables=False, delimiter=',', filter_value=None):
         """ Convert sql database table to csv
 
         :param table_name: table name in sqlalchemy ORM
         :param csv_file: path to csv file
-        :param get_foreign_key_tables: if True, try to map all corresponding tables (from foreign keys) into csv
+        :param map_foreign_key_tables: if True, try to map all corresponding tables (from foreign keys) into csv
         :param delimiter: delimiter char in csv file (default: comma)
+        :param filter_value: (tuple or list of values) only keep rows who contain the given value or a list of 
+        values (str, int, etc.). Should be used as a "soft filter" as the csv file can be filtered later (e.g. using
+        pandas)
         :return:
         """
-        def get_columns(name, no_id=False):
+        def get_columns(name, count=1):
             """ Recursively get all column names from all tables in database
 
             :param name: table name
-            :param no_id: only used for recursive calls (no more id column for related tables)
+            :param count: only used for recursive calls ()
             :return:
             """
-            if no_id:
-                columns = [column.name for column in self.meta.tables[name].c if column.name != "id"]
+            if count > 1:
+                columns = [column.name + "_" + name for column in self.meta.tables[name].c]
             else:
                 columns = [column.name for column in self.meta.tables[name].c]
 
@@ -58,36 +60,31 @@ class SqlCsv:
             if foreign_keys:
                 for foreign_key in foreign_keys:
                     referred_table = foreign_key['referred_table']
-                    columns.extend(get_columns(referred_table, no_id=True))
+                    columns.extend(get_columns(referred_table, count + 1))
 
             return columns
 
-        def get_row_from_id(name, _id, no_id=False):
+        def get_row_from_id(name, _id):
             """ Recursively get all rows from all tables in database
 
             :param name: table name
             :param _id:
-            :param no_id:
             :return:
             """
             query = self.session.query(self.meta.tables[name]).filter(self.meta.tables[name].c.id == _id).one()
-            if no_id:
-                row_ = [query.__getattribute__(column.name) for column in self.meta.tables[name].c
-                        if column.name != "id"]
-            else:
-                row_ = [query.__getattribute__(column.name) for column in self.meta.tables[name].c]
+            row_ = [query.__getattribute__(column.name) for column in self.meta.tables[name].c]
 
             foreign_keys = self.inspector.get_foreign_keys(name)
             if foreign_keys:
                 for foreign_key in foreign_keys:
                     ref_id = query.__getattribute__(foreign_key['constrained_columns'][0])
-                    row_.extend(get_row_from_id(foreign_key['referred_table'], ref_id, no_id=True))
+                    row_.extend(get_row_from_id(foreign_key['referred_table'], ref_id))
 
             return row_
 
         results = self.session.query(self.meta.tables[table_name]).all()
 
-        if get_foreign_key_tables:
+        if map_foreign_key_tables:
             rows = []
             column_names = get_columns(table_name)
             for result in results:
@@ -101,4 +98,8 @@ class SqlCsv:
             csvwriter = csv.writer(csvfile, delimiter=delimiter)
             csvwriter.writerow(column_names)
             for row in rows:
-                csvwriter.writerow(row)
+                if filter_value:
+                    if any(val in row for val in filter_value):
+                        csvwriter.writerow(row)
+                else:
+                    csvwriter.writerow(row)
